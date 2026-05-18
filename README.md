@@ -91,54 +91,56 @@ python main.py
 # 或启动 Web Dashboard
 python api/server.py
 # 浏览器访问 http://localhost:8000/dashboard
-6. 交互命令示例
-> help                    # 查看所有命令
-> status                  # 系统状态
-> search                  # 搜索目标
-> track car               # 跟踪车辆
-> switch_model yolo11x    # 热切换模型
-> switch_tracker bytetrack # 热切换跟踪器
-> benchmark               # 运行检测器基准测试
-> reflect                 # 触发反思进化
+6. 交互命令示例  
+> help                    # 查看所有命令  
+> status                  # 系统状态  
+> search                  # 搜索目标  
+> track car               # 跟踪车辆  
+> switch_model yolo11x    # 热切换模型  
+> switch_tracker bytetrack # 热切换跟踪器  
+> benchmark               # 运行检测器基准测试  
+> reflect                 # 触发反思进化  
 > api                     # 启动 API 服务器
-🧪 实验与评估
-运行检测精度对比
-python benchmark_accuracy.py
-运行 MOT 基准测试（合成场景）
-python benchmark_mot.py          # 基础 MOT
-python benchmark_mot_advanced.py # 遮挡+小目标场景
-运行真实数据集基准（VisDrone）
-python benchmark_real_mot.py     # 100 帧完整评估
-运行批量实验
-python run_experiments.py        # 自动执行 4 组配置 × 25 次任务
-生成评估图表
-python visualizer_enhanced.py    # 雷达图/热力图
-python generate_final_charts.py  # MOT 对比柱状图
-评估跟踪精度
-python run_visdrone_real.py      # 生成跟踪结果
-python evaluate_tracking.py      # 计算 MOTA/IDF1
-📁 项目结构
-Text
-UAVagent/
-├── agents/                 # 十二个智能体
-├── config/                 # 配置中心（settings.py）
-├── core/                   # 核心模块
-│   ├── detection/          # 多模型集成检测器（WBF）
-│   ├── tracking/           # 增强跟踪器（卡尔曼+外观）
-│   ├── memory/             # 向量记忆库（ChromaDB）
-│   ├── llm/                # LLM 客户端（deepseek-v4-flash）
-│   └── edge/               # 边缘部署（ONNX/TensorRT）
-├── api/                    # FastAPI 服务器 + Dashboard
-├── evaluation/             # 评估、可视化、沙盒
-├── experiments/            # 实验配置文件
-├── tests/                  # 测试场景
-├── docker/                 # Docker 容器化配置
-├── models/                 # YOLO 模型文件（需单独下载）
-├── output/                 # 运行时输出（自动归档）
-├── main.py                 # 主入口
-├── requirements.txt        # 依赖清单
-├── .env.example            # 环境配置模板
-└── README.md
+
+🧪 实验与评估  
+运行检测精度对比  
+python benchmark_accuracy.py  
+运行 MOT 基准测试（合成场景）  
+python benchmark_mot.py          # 基础 MOT  
+python benchmark_mot_advanced.py # 遮挡+小目标场景  
+运行真实数据集基准（VisDrone）  
+python benchmark_real_mot.py     # 100 帧完整评估  
+运行批量实验  
+python run_experiments.py        # 自动执行 4 组配置 × 25 次任务  
+生成评估图表  
+python visualizer_enhanced.py    # 雷达图/热力图  
+python generate_final_charts.py  # MOT 对比柱状图  
+评估跟踪精度  
+python run_visdrone_real.py      # 生成跟踪结果  
+python evaluate_tracking.py      # 计算 MOTA/IDF1 
+
+📁 项目结构  
+UAVagent/  
+├── agents/                 # 十二个智能体  
+├── config/                 # 配置中心（settings.py）  
+├── core/                   # 核心模块  
+│   ├── detection/          # 多模型集成检测器（WBF）  
+│   ├── tracking/           # 增强跟踪器（卡尔曼+外观）  
+│   ├── memory/             # 向量记忆库（ChromaDB）  
+│   ├── llm/                # LLM 客户端（deepseek-v4-flash）  
+│   └── edge/               # 边缘部署（ONNX/TensorRT）  
+├── api/                    # FastAPI 服务器 + Dashboard  
+├── evaluation/             # 评估、可视化、沙盒  
+├── experiments/            # 实验配置文件  
+├── tests/                  # 测试场景  
+├── docker/                 # Docker 容器化配置  
+├── models/                 # YOLO 模型文件（需单独下载）  
+├── output/                 # 运行时输出（自动归档）  
+├── main.py                 # 主入口  
+├── requirements.txt        # 依赖清单  
+├── .env.example            # 环境配置模板  
+└── README.md  
+
 🎓 学术创新点
 多模型加权融合检测（WBF）：三个 YOLO 模型通过加权框融合，在 VisDrone 真实数据上 MOTA 提升 4+ 百分点，召回率提升 0.5 个百分点，同时保持零 ID 切换。
 
@@ -178,6 +180,7 @@ Bibtex
   version = {1.1},
   url = {https://github.com/StarlitPupils/UAVagent1.0}
 }
+
 📜 许可证
 MIT License - 详见 LICENSE
 
