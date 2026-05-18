@@ -92,7 +92,6 @@ python main.py
 python api/server.py
 # 浏览器访问 http://localhost:8000/dashboard
 6. 交互命令示例
-Text
 > help                    # 查看所有命令
 > status                  # 系统状态
 > search                  # 搜索目标
@@ -166,7 +165,6 @@ docker-compose up -d
 
 或通过元智能体生成：
 
-Text
 > generate_agent MyAgent 需求描述
 贡献代码
 欢迎 Issue / PR，请保持代码风格一致。
