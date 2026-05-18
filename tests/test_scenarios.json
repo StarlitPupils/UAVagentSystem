@@ -1,0 +1,22 @@
+[
+  {
+    "name": "search",
+    "command": "search"
+  },
+  {
+    "name": "track_car",
+    "command": "track car"
+  },
+  {
+    "name": "track_person",
+    "command": "track person"
+  },
+  {
+    "name": "track_vehicle",
+    "command": "track vehicle"
+  },
+  {
+    "name": "report",
+    "command": "report"
+  }
+]

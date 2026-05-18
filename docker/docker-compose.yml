@@ -1,0 +1,40 @@
+﻿# docker-compose.yml - UAVagent 2.0 服务编排
+version: '3.8'
+
+services:
+  uavagent-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: uavagent-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../models:/app/models
+      - ../output:/app/output
+      - ../logs:/app/logs
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - LLM_MODEL=deepseek-v4-flash
+      - LLM_CACHE_ENABLED=true
+      - VECTOR_MEMORY_ENABLED=true
+    restart: unless-stopped
+    networks:
+      - uavagent-net
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: uavagent-chromadb
+    ports:
+      - "8001:8000"
+    volumes:
+      - ../output/chroma_db:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+    restart: unless-stopped
+    networks:
+      - uavagent-net
+
+networks:
+  uavagent-net:
+    driver: bridge
