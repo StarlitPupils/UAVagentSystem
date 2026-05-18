@@ -69,7 +69,6 @@
 ## ⚙️ 快速开始
 ### 1. 环境准备
 Python 3.10 / 3.11 推荐
-```bash
 git clone https://github.com/StarlitPupils/UAVagent1.0.git
 cd UAVagent1.0
 python -m venv venv
@@ -78,19 +77,15 @@ venv\Scripts\activate
 # Linux/macOS
 source venv/bin/activate
 2. 安装依赖
-Bash
 pip install -r requirements.txt
 3. 下载 YOLO 模型
-Bash
 mkdir models
 # 自动下载（推荐）
 python -c "from ultralytics import YOLO; YOLO('yolo11x.pt'); YOLO('yolov8x.pt'); YOLO('yolo11n.pt')"
 4. 配置 API 密钥
-Bash
 cp .env.example .env
 # 编辑 .env，填入 DeepSeek API Key
 5. 启动系统
-Bash
 # 交互式命令行
 python main.py
 # 或启动 Web Dashboard
@@ -109,24 +104,18 @@ Text
 > api                     # 启动 API 服务器
 🧪 实验与评估
 运行检测精度对比
-Bash
 python benchmark_accuracy.py
 运行 MOT 基准测试（合成场景）
-Bash
 python benchmark_mot.py          # 基础 MOT
 python benchmark_mot_advanced.py # 遮挡+小目标场景
 运行真实数据集基准（VisDrone）
-Bash
 python benchmark_real_mot.py     # 100 帧完整评估
 运行批量实验
-Bash
 python run_experiments.py        # 自动执行 4 组配置 × 25 次任务
 生成评估图表
-Bash
 python visualizer_enhanced.py    # 雷达图/热力图
 python generate_final_charts.py  # MOT 对比柱状图
 评估跟踪精度
-Bash
 python run_visdrone_real.py      # 生成跟踪结果
 python evaluate_tracking.py      # 计算 MOTA/IDF1
 📁 项目结构
@@ -167,7 +156,6 @@ UAVagent/
 Sim-to-Real 无缝切换：同一代码库支持 AirSim 仿真、VisDrone 数据集回放、真实无人机部署。
 
 🐳 Docker 部署
-Bash
 cd docker
 docker-compose up -d
 # API: http://localhost:8000
