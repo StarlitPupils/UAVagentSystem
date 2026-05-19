@@ -108,6 +108,7 @@
 - **会话归档**：每次运行自动创建 `session_YYYYMMDD_HHMMSS` 目录，日志、指标、图表完整保存。
 
 ---
+<<<<<<< HEAD
 ## 📋 项目成果与创新点
 
 ### 一、项目成果简介
@@ -146,6 +147,25 @@ Python 3.10 / 3.11 推荐（3.13 需注意包兼容性）
 克隆项目并创建虚拟环境：
 git clone https://github.com/StarlitPupils/UAVagent.git
 cd UAVagent
+=======
+## 📈 VisDrone 真实数据集验证结果
+在 **VisDrone2019-MOT-val / uav0000086_00000_v** 序列上，100 帧基准测试：
+| 指标 | 单模型 (YOLOv11x) | 多模型融合 | 提升 |
+|------|-------------------|-----------|------|
+| **MOTA** | 0.743 | **0.784** | **+4.1 pp** |
+| **IDF1** | 0.874 | **0.880** | **+0.6 pp** |
+| **Recall** | 0.893 | **0.898** | +0.5 pp |
+| **Precision** | 0.856 | 0.853 | – |
+| **ID Switches** | 0 | 0 | – |
+| **FN (漏检)** | 393 | **373** | **‑20** |
+> ✅ **结论**：多模型融合在真实无人机航拍序列上，MOTA 系统性超越任何单一模型，且保持完美的 ID 一致性（零切换）。
+---
+## ⚙️ 快速开始
+### 1. 环境准备
+Python 3.10 / 3.11 推荐
+git clone https://github.com/StarlitPupils/UAVagent1.0.git
+cd UAVagent1.0
+>>>>>>> 7726e43414d53dea4a92e6e500493d5c95aad2d0
 python -m venv venv
 # Windows
 venv\Scripts\activate
@@ -158,6 +178,7 @@ mkdir models
 # 下载 yolov8x.pt 放入 models/ 目录
 # 官方链接：https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8x.pt
 4. 配置 API 密钥
+<<<<<<< HEAD
 复制 .env.example 为 .env，填入 DeepSeek API Key（申请地址）。
 
 5. 运行系统
@@ -215,6 +236,66 @@ UAVagent/
 ├── evaluate_tracking.py    # 跟踪评估
 ├── requirements.txt        # 依赖清单
 └── README.md
+=======
+cp .env.example .env
+# 编辑 .env，填入 DeepSeek API Key
+5. 启动系统
+# 交互式命令行
+python main.py
+# 或启动 Web Dashboard
+python api/server.py
+# 浏览器访问 http://localhost:8000/dashboard
+6. 交互命令示例  
+> help                    # 查看所有命令  
+> status                  # 系统状态  
+> search                  # 搜索目标  
+> track car               # 跟踪车辆  
+> switch_model yolo11x    # 热切换模型  
+> switch_tracker bytetrack # 热切换跟踪器  
+> benchmark               # 运行检测器基准测试  
+> reflect                 # 触发反思进化  
+> api                     # 启动 API 服务器
+
+🧪 实验与评估  
+运行检测精度对比  
+python benchmark_accuracy.py  
+运行 MOT 基准测试（合成场景）  
+python benchmark_mot.py          # 基础 MOT  
+python benchmark_mot_advanced.py # 遮挡+小目标场景  
+运行真实数据集基准（VisDrone）  
+python benchmark_real_mot.py     # 100 帧完整评估  
+运行批量实验  
+python run_experiments.py        # 自动执行 4 组配置 × 25 次任务  
+生成评估图表  
+python visualizer_enhanced.py    # 雷达图/热力图  
+python generate_final_charts.py  # MOT 对比柱状图  
+评估跟踪精度  
+python run_visdrone_real.py      # 生成跟踪结果  
+python evaluate_tracking.py      # 计算 MOTA/IDF1 
+
+📁 项目结构  
+UAVagent/  
+├── agents/                 # 十二个智能体  
+├── config/                 # 配置中心（settings.py）  
+├── core/                   # 核心模块  
+│   ├── detection/          # 多模型集成检测器（WBF）  
+│   ├── tracking/           # 增强跟踪器（卡尔曼+外观）  
+│   ├── memory/             # 向量记忆库（ChromaDB）  
+│   ├── llm/                # LLM 客户端（deepseek-v4-flash）  
+│   └── edge/               # 边缘部署（ONNX/TensorRT）  
+├── api/                    # FastAPI 服务器 + Dashboard  
+├── evaluation/             # 评估、可视化、沙盒  
+├── experiments/            # 实验配置文件  
+├── tests/                  # 测试场景  
+├── docker/                 # Docker 容器化配置  
+├── models/                 # YOLO 模型文件（需单独下载）  
+├── output/                 # 运行时输出（自动归档）  
+├── main.py                 # 主入口  
+├── requirements.txt        # 依赖清单  
+├── .env.example            # 环境配置模板  
+└── README.md  
+
+>>>>>>> 7726e43414d53dea4a92e6e500493d5c95aad2d0
 🎓 学术创新点
 代码级自演化多智能体架构 — 元智能体可修改其他智能体源码，实现结构级自我优化。
 
@@ -226,6 +307,18 @@ Transformer 自注意力跟踪器 — 将目标关联建模为序列匹配，ID 
 
 Sim-to-Real 无缝切换 — 同一代码库支持仿真、数据集回放、真实无人机（规划中）。
 
+<<<<<<< HEAD
+=======
+全栈评估体系：首次在多智能体系统中同时覆盖跟踪精度（MOTA/IDF1/HOTA）、系统效率、LLM 交互质量、智能体协作一致性四个维度。
+
+Sim-to-Real 无缝切换：同一代码库支持 AirSim 仿真、VisDrone 数据集回放、真实无人机部署。
+
+🐳 Docker 部署
+cd docker
+docker-compose up -d
+# API: http://localhost:8000
+# Dashboard: http://localhost:8000/dashboard
+>>>>>>> 7726e43414d53dea4a92e6e500493d5c95aad2d0
 🤝 贡献与定制
 添加自定义智能体
 在 custom_agents/ 下创建 .py 文件，类名以 Agent 结尾。
@@ -234,6 +327,10 @@ Sim-to-Real 无缝切换 — 同一代码库支持仿真、数据集回放、真
 
 或通过元智能体生成：> generate_agent MyAgent 需求描述。
 
+<<<<<<< HEAD
+=======
+> generate_agent MyAgent 需求描述
+>>>>>>> 7726e43414d53dea4a92e6e500493d5c95aad2d0
 贡献代码
 欢迎 Issue / PR，请保持代码风格一致。
 
@@ -245,6 +342,7 @@ bibtex
   year = {2026},
   url = {https://github.com/StarlitPupils/UAVagent}
 }
+
 📜 许可证
 MIT License
 
