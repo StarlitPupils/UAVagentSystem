@@ -1,7 +1,7 @@
-﻿# E:/UAVagent1.1/run_full_evaluation.py
+﻿# E:/UAVagent/run_full_evaluation.py
 """一键评估：批量测试 + 生成图表"""
 import sys
-sys.path.insert(0, "E:/UAVagent1.1")
+sys.path.insert(0, "E:/UAVagent")
 import asyncio
 import os
 
@@ -14,7 +14,7 @@ async def main():
     print("\n[1/3] 批量测试运行中...")
     from evaluation.batch_runner import BatchRunner
     import json
-    with open("E:/UAVagent1.1/tests/test_scenarios.json", "r", encoding="utf-8") as f:
+    with open("E:/UAVagent/tests/test_scenarios.json", "r", encoding="utf-8") as f:
         scenarios = json.load(f)
     runner = BatchRunner()
     await runner.run_scenarios(scenarios, repeats=5)

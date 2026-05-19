@@ -1,4 +1,4 @@
-﻿# E:/UAVagent1.1/core/llm_filter.py
+﻿# E:/UAVagent/core/llm_filter.py
 """LLM 推理降噪器 v2 - 多模型确认优先策略
 规则：
 1. num_models >= 2 的目标直接保留（多模型交叉验证）

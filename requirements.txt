@@ -1,39 +1,53 @@
-﻿# ========== UAVagent 2.0 依赖 ==========
+﻿# ========== UAVagent 1.2 依赖 (v1.2升级) ==========
 # 深度学习
 torch>=2.0.0
 torchvision>=0.15.0
 ultralytics>=8.3.0
+# v1.2: torchreid (ReID特征)
+# torchreid>=1.4.0  # 可选，自动降级
+
 # 跟踪
 lap>=0.5.12
 einops>=0.8.0
 scipy>=1.10.0
+
 # LLM
 openai>=1.93.0
 python-dotenv>=1.0.0
+# v1.2: Ollama本地模型 (通过REST API调用，无需额外包)
+requests>=2.31.0
+
 # 向量记忆库
 chromadb>=0.5.0
 sentence-transformers>=2.7.0
+
 # 视觉
 opencv-python-headless>=4.10.0
+
 # API服务
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
 websockets>=12.0
+
 # 数据处理
 numpy>=2.0.0
 pandas>=2.2.0
 pyyaml>=6.0
+
 # 评估
 motmetrics>=1.4.0
 matplotlib>=3.8.0
 seaborn>=0.13.0
+
 # 工具
 structlog>=24.0.0
 rich>=13.0.0
 typer>=0.12.0
-# Docker/边缘
+
+# v1.2: TensorRT边缘部署 (可选)
 # onnx>=1.16.0
 # onnxruntime-gpu>=1.18.0
+
 # 多智能体（保留）
 autogen-agentchat==0.7.5
 autogen-core==0.7.5

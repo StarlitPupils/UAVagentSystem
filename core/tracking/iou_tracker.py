@@ -1,244 +1,174 @@
-﻿# core/tracking/iou_tracker.py
-"""增强跟踪器 v4 - 稳健卡尔曼 + 外观匹配 + IoU"""
-import numpy as np
-import cv2
+﻿# core/tracking/iou_tracker.py (v1.2.8 stable - min_hits=1)
+import numpy as np, cv2
+from typing import List
 
-class KalmanBoxTracker:
-    """单目标卡尔曼跟踪器（8 状态：cx,cy,w,h,vx,vy,vw,vh）"""
+def _safe_float(val):
+    if isinstance(val, (np.ndarray,)):
+        if val.size == 0: return 0.0
+        return float(val.flat[0])
+    return float(val)
+
+class KalmanTracker:
     count = 0
-
     def __init__(self, bbox, confidence, cls, frame=None):
-        self.id = KalmanBoxTracker.count
-        KalmanBoxTracker.count += 1
-
-        # 8 状态 (cx,cy,w,h,vx,vy,vw,vh)  4 观测 (cx,cy,w,h)
-        self.kf = cv2.KalmanFilter(8, 4)
-
-        # ---- 状态转移矩阵 ----
-        # 位置 = 位置 + 速度（使用 dt=1）
-        self.kf.transitionMatrix = np.eye(8, dtype=np.float32)
-        self.kf.transitionMatrix[0, 4] = 1.0  # cx += vx
-        self.kf.transitionMatrix[1, 5] = 1.0  # cy += vy
-        self.kf.transitionMatrix[2, 6] = 1.0  # w  += vw
-        self.kf.transitionMatrix[3, 7] = 1.0  # h  += vh
-
-        # ---- 观测矩阵 ----
-        self.kf.measurementMatrix = np.zeros((4, 8), dtype=np.float32)
-        self.kf.measurementMatrix[0, 0] = 1.0
-        self.kf.measurementMatrix[1, 1] = 1.0
-        self.kf.measurementMatrix[2, 2] = 1.0
-        self.kf.measurementMatrix[3, 3] = 1.0
-
-        # ---- 噪声 ----
-        self.kf.processNoiseCov = np.eye(8, dtype=np.float32) * 0.03
-        self.kf.processNoiseCov[4:, 4:] *= 0.01   # 速度噪声更小
-        self.kf.measurementNoiseCov = np.eye(4, dtype=np.float32) * 0.05
-        self.kf.errorCovPost = np.eye(8, dtype=np.float32)
-
-        # ---- 初始状态 ----
-        self.kf.statePost = np.zeros((8, 1), dtype=np.float32)
-        self.kf.statePost[0, 0] = bbox[0]
-        self.kf.statePost[1, 0] = bbox[1]
-        self.kf.statePost[2, 0] = bbox[2]
-        self.kf.statePost[3, 0] = bbox[3]
-
-        self.bbox = list(bbox)
-        self.confidence = confidence
-        self.cls = cls
-        self.age = 0
-        self.hits = 1
-        self.time_since_update = 0
-        self.features = self._extract_features(frame, bbox) if frame is not None else None
+        self.id = KalmanTracker.count; KalmanTracker.count += 1
+        self.state = np.zeros((8,1),dtype=np.float32)
+        self.state[0]=_safe_float(bbox[0]); self.state[1]=_safe_float(bbox[1])
+        self.state[2]=max(1.0,_safe_float(bbox[2])); self.state[3]=max(1.0,_safe_float(bbox[3]))
+        self.P=np.eye(8,dtype=np.float32)*10.0; self.P[4:,4:]*=100.0
+        self.Q=np.eye(8,dtype=np.float32)*0.01; self.Q[4:,4:]*=0.1
+        self.R=np.eye(4,dtype=np.float32)*0.1
+        self.bbox=[_safe_float(v) for v in bbox]; self.confidence=_safe_float(confidence)
+        self.cls=int(cls) if cls else 0; self.age=0; self.hits=1; self.time_since_update=0
+        self.features=None; self.trajectory=[]
+        if frame is not None: self._extract_features(frame,bbox)
 
     def _extract_features(self, frame, bbox):
-        if frame is None:
-            return None
         try:
-            cx, cy, w, h = [int(v) for v in bbox]
-            x1 = max(0, cx - w // 2)
-            y1 = max(0, cy - h // 2)
-            x2 = min(frame.shape[1] - 1, cx + w // 2)
-            y2 = min(frame.shape[0] - 1, cy + h // 2)
-            if x2 <= x1 + 3 or y2 <= y1 + 3:
-                return None
-            roi = frame[y1:y2, x1:x2]
-            if roi.size == 0:
-                return None
-            hsv = cv2.cvtColor(roi, cv2.COLOR_RGB2HSV)
-            hist = cv2.calcHist([hsv], [0, 1], None, [8, 8], [0, 180, 0, 256])
-            cv2.normalize(hist, hist)
-            return hist.flatten()
-        except:
-            return None
+            cx=int(_safe_float(bbox[0])); cy=int(_safe_float(bbox[1]))
+            w=max(1,int(_safe_float(bbox[2]))); h=max(1,int(_safe_float(bbox[3])))
+            x1=max(0,cx-w//2); y1=max(0,cy-h//2)
+            x2=min(frame.shape[1]-1,cx+w//2); y2=min(frame.shape[0]-1,cy+h//2)
+            if x2>x1+3 and y2>y1+3:
+                roi=frame[y1:y2,x1:x2]
+                if roi.size>0:
+                    hsv=cv2.cvtColor(roi,cv2.COLOR_RGB2HSV)
+                    hist=cv2.calcHist([hsv],[0,1],None,[8,8],[0,180,0,256])
+                    cv2.normalize(hist,hist)
+                    self.features=hist.flatten().astype(np.float32)
+        except: self.features=np.ones(64,dtype=np.float32)*0.5
 
     def predict(self):
-        self.kf.predict()
-        self.age += 1
-        self.time_since_update += 1
-        s = self.kf.statePre
-        return [float(s[0, 0]), float(s[1, 0]), float(s[2, 0]), float(s[3, 0])]
+        F=np.eye(8,dtype=np.float32)
+        F[0,4]=1.0; F[1,5]=1.0; F[2,6]=1.0; F[3,7]=1.0
+        self.state=F@self.state; self.P=F@self.P@F.T+self.Q
+        self.age+=1; self.time_since_update+=1
+        self.state[2]=max(1.0,_safe_float(self.state[2]))
+        self.state[3]=max(1.0,_safe_float(self.state[3]))
+        return [_safe_float(self.state[0]),_safe_float(self.state[1]),
+                _safe_float(self.state[2]),_safe_float(self.state[3])]
 
     def update(self, bbox, confidence, cls, frame=None):
-        self.time_since_update = 0
-        self.hits += 1
-        self.confidence = confidence
-        self.cls = cls
-        self.bbox = list(bbox)
+        self.time_since_update=0; self.hits+=1
+        self.confidence=_safe_float(confidence); self.cls=int(cls) if cls else 0
+        self.bbox=[_safe_float(v) for v in bbox]
+        H=np.zeros((4,8),dtype=np.float32)
+        H[0,0]=1.0; H[1,1]=1.0; H[2,2]=1.0; H[3,3]=1.0
+        z=np.array([[_safe_float(bbox[0])],[_safe_float(bbox[1])],
+                     [_safe_float(bbox[2])],[_safe_float(bbox[3])]],dtype=np.float32)
+        y=z-H@self.state; S=H@self.P@H.T+self.R
+        try:
+            K=self.P@H.T@np.linalg.inv(S+np.eye(4,dtype=np.float32)*1e-4)
+            self.state=self.state+K@y; self.P=(np.eye(8,dtype=np.float32)-K@H)@self.P
+        except:
+            self.state[0]=_safe_float(bbox[0]); self.state[1]=_safe_float(bbox[1])
+        self.trajectory.append(bbox)
+        if len(self.trajectory)>50: self.trajectory=self.trajectory[-50:]
+        if frame is not None: self._extract_features(frame,bbox)
 
-        meas = np.array([[bbox[0]], [bbox[1]], [bbox[2]], [bbox[3]]], dtype=np.float32)
-        self.kf.correct(meas)
+def iou(box1,box2):
+    a=[_safe_float(v) for v in box1]; b=[_safe_float(v) for v in box2]
+    x1,y1=a[0]-a[2]/2,a[1]-a[3]/2; x2,y2=b[0]-b[2]/2,b[1]-b[3]/2
+    ix1,iy1=max(x1,x2),max(y1,y2); ix2,iy2=min(x1+a[2],x2+b[2]),min(y1+a[3],y2+b[3])
+    inter=max(0,ix2-ix1)*max(0,iy2-iy1); area1,area2=a[2]*a[3],b[2]*b[3]
+    return inter/(area1+area2-inter+1e-8)
 
-        if frame is not None:
-            feat = self._extract_features(frame, bbox)
-            if feat is not None:
-                self.features = feat
-
-
-def iou(box1, box2):
-    cx1, cy1, w1, h1 = box1
-    cx2, cy2, w2, h2 = box2
-    x1, y1, x2, y2 = cx1 - w1/2, cy1 - h1/2, cx1 + w1/2, cy1 + h1/2
-    x3, y3, x4, y4 = cx2 - w2/2, cy2 - h2/2, cx2 + w2/2, cy2 + h2/2
-    ix1, iy1 = max(x1, x3), max(y1, y3)
-    ix2, iy2 = min(x2, x4), min(y2, y4)
-    inter = max(0, ix2 - ix1) * max(0, iy2 - iy1)
-    area1, area2 = w1 * h1, w2 * h2
-    return inter / (area1 + area2 - inter + 1e-8)
-
-
-def feature_distance(f1, f2):
-    if f1 is None or f2 is None:
-        return 0.5
-    return float(cv2.compareHist(f1, f2, cv2.HISTCMP_BHATTACHARYYA))
-
+def feature_distance(f1,f2):
+    if f1 is None or f2 is None: return 0.5
+    try:
+        f1=np.array(f1,dtype=np.float32).flatten(); f2=np.array(f2,dtype=np.float32).flatten()
+        dim=min(len(f1),len(f2))
+        if dim<1: return 0.5
+        f1=f1[:dim]; f2=f2[:dim]
+        dot=np.dot(f1,f2); n1=np.linalg.norm(f1); n2=np.linalg.norm(f2)
+        if n1<1e-8 or n2<1e-8: return 0.5
+        return float(np.clip(1.0-dot/(n1*n2),0.0,1.0))
+    except: return 0.5
 
 class EnhancedTracker:
-    def __init__(self, max_age=30, min_hits=5, iou_threshold=0.25, feature_weight=0.3):
-        self.max_age = max_age
-        self.min_hits = min_hits
-        self.iou_threshold = iou_threshold
-        self.feature_weight = feature_weight
-        self.tracks = []
-        self.frame_count = 0
+    def __init__(self, max_age=15, min_hits=1, iou_threshold=0.25, feature_weight=0.35,
+                 use_ekf=True, interpolate_gaps=True, max_gap_frames=10):
+        self.name='enhanced'; self.max_age=max_age; self.min_hits=min_hits
+        self.iou_threshold=iou_threshold; self.feature_weight=feature_weight
+        self.interpolate_gaps=interpolate_gaps; self.max_gap_frames=max_gap_frames
+        self.tracks=[]; self.frame_count=0; self.lost_tracks={}
 
     def update(self, detections, frame=None):
-        self.frame_count += 1
-
-        # ---- 预测所有轨迹 ----
-        predictions = []
-        for track in self.tracks:
-            predictions.append(track.predict())
-
-        n_dets = len(detections)
-        n_tracks = len(self.tracks)
-
-        # ---- 无检测情况 ----
-        if n_dets == 0:
-            for track in self.tracks:
-                track.update(track.bbox, track.confidence, track.cls, None)
-            self.tracks = [t for t in self.tracks if t.time_since_update <= self.max_age]
-            return self._get_active_tracks()
-
-        # ---- 计算代价矩阵 ----
-        cost_matrix = np.full((n_dets, max(1, n_tracks)), 1e9, dtype=np.float32)
-
-        for i, det in enumerate(detections):
-            det_bbox = det['bbox']
-
-            # 提取检测外观特征
-            det_feat = None
-            if frame is not None:
-                try:
-                    cx, cy, w, h = [int(v) for v in det_bbox]
-                    x1 = max(0, cx - w // 2)
-                    y1 = max(0, cy - h // 2)
-                    x2 = min(frame.shape[1] - 1, cx + w // 2)
-                    y2 = min(frame.shape[0] - 1, cy + h // 2)
-                    if x2 > x1 + 3 and y2 > y1 + 3:
-                        roi = frame[y1:y2, x1:x2]
-                        if roi.size > 0:
-                            hsv = cv2.cvtColor(roi, cv2.COLOR_RGB2HSV)
-                            hist = cv2.calcHist([hsv], [0, 1], None, [8, 8], [0, 180, 0, 256])
-                            cv2.normalize(hist, hist)
-                            det_feat = hist.flatten()
-                except:
-                    pass
-
-            for j, track in enumerate(self.tracks):
-                iou_val = iou(det_bbox, predictions[j])
-                if iou_val < 0.02:
-                    continue
-
-                iou_cost = 1.0 - iou_val
-
-                if det_feat is not None and track.features is not None:
-                    feat_cost = feature_distance(det_feat, track.features)
-                else:
-                    feat_cost = 0.5
-
-                cost_matrix[i, j] = (1 - self.feature_weight) * iou_cost + self.feature_weight * feat_cost
-
-        # ---- 匈牙利匹配 ----
-        matched_dets, matched_tracks = set(), set()
-        if n_dets > 0 and n_tracks > 0:
+        self.frame_count+=1
+        predictions=[t.predict() for t in self.tracks]
+        if len(detections)==0:
+            for t in self.tracks: t.update(t.bbox,t.confidence,t.cls,None)
+            self._cleanup(); return self._get_active(frame)
+        n_dets=len(detections); n_tracks=len(self.tracks)
+        cost=np.full((n_dets,max(1,n_tracks)),1e9,dtype=np.float32)
+        det_feats=[]
+        for det in detections:
+            try:
+                tmp=KalmanTracker(det['bbox'],det.get('confidence',0.5),det.get('class',0),frame)
+                det_feats.append(tmp.features)
+            except: det_feats.append(None)
+        for i,det in enumerate(detections):
+            for j,trk in enumerate(self.tracks):
+                iou_val=iou(det['bbox'],predictions[j])
+                if iou_val<0.01: continue
+                feat_cost=feature_distance(det_feats[i],trk.features)
+                cost[i,j]=(1-self.feature_weight)*(1-iou_val)+self.feature_weight*feat_cost
+        matched_d,matched_t=set(),set()
+        if n_dets>0 and n_tracks>0:
             try:
                 from scipy.optimize import linear_sum_assignment
-                row_ind, col_ind = linear_sum_assignment(cost_matrix)
+                ri,ci=linear_sum_assignment(cost)
             except:
-                row_ind, col_ind = [], []
-
-            for r, c in zip(row_ind, col_ind):
-                if cost_matrix[r, c] < 1e8:
-                    self.tracks[c].update(
-                        detections[r]['bbox'],
-                        detections[r].get('confidence', 0.5),
-                        detections[r].get('class', 0),
-                        frame
-                    )
-                    matched_dets.add(r)
-                    matched_tracks.add(c)
-
-        # ---- 新轨迹 ----
+                ri=list(range(min(n_dets,n_tracks))); ci=list(range(min(n_dets,n_tracks)))
+            for r,c in zip(ri,ci):
+                if cost[r,c]<1e8 and cost[r,c]<0.7:
+                    self.tracks[c].update(detections[r]['bbox'],
+                        detections[r].get('confidence',0.5),detections[r].get('class',0),frame)
+                    matched_d.add(r); matched_t.add(c)
         for i in range(n_dets):
-            if i not in matched_dets:
-                self.tracks.append(KalmanBoxTracker(
-                    detections[i]['bbox'],
-                    detections[i].get('confidence', 0.5),
-                    detections[i].get('class', 0),
-                    frame
-                ))
-
-        # ---- 未匹配轨迹用预测值更新 ----
+            if i not in matched_d:
+                self.tracks.append(KalmanTracker(detections[i]['bbox'],
+                    detections[i].get('confidence',0.5),detections[i].get('class',0),frame))
         for j in range(n_tracks):
-            if j not in matched_tracks:
-                self.tracks[j].update(
-                    predictions[j],
-                    self.tracks[j].confidence,
-                    self.tracks[j].cls,
-                    None
-                )
+            if j not in matched_t:
+                self.tracks[j].update(predictions[j],self.tracks[j].confidence,self.tracks[j].cls,None)
+        self._cleanup()
+        return self._get_active(frame)
 
-        # ---- 清理 ----
-        self.tracks = [t for t in self.tracks if t.time_since_update <= self.max_age]
+    def _cleanup(self):
+        active=[]
+        for t in self.tracks:
+            if t.time_since_update<=self.max_age: active.append(t)
+            elif self.interpolate_gaps:
+                self.lost_tracks[t.id]={'track':t,'lost_frame':self.frame_count,'last_bbox':t.bbox}
+        self.tracks=active
+        expired=[tid for tid,info in self.lost_tracks.items() if self.frame_count-info['lost_frame']>self.max_gap_frames*2]
+        for tid in expired: del self.lost_tracks[tid]
 
-        return self._get_active_tracks()
-
-    def _get_active_tracks(self):
-        results = []
-        for track in self.tracks:
-            if track.hits >= self.min_hits and track.time_since_update == 0:
-                results.append({
-                    'bbox': track.bbox,
-                    'id': track.id,
-                    'confidence': track.confidence,
-                    'class': track.cls,
-                    'class_name': 'object',
-                    'hits': track.hits,
-                    'age': track.age,
-                })
-        return results
+    def _get_active(self,frame=None):
+        res=[]
+        for t in self.tracks:
+            if t.hits>=self.min_hits and t.time_since_update==0:
+                res.append({'bbox':[_safe_float(v) for v in t.bbox],'id':int(t.id),
+                           'confidence':_safe_float(t.confidence),'class':int(t.cls),
+                           'class_name':'object','hits':int(t.hits),'age':int(t.age),'num_models':1})
+        if self.interpolate_gaps and frame is not None:
+            for tid,info in list(self.lost_tracks.items()):
+                gap=self.frame_count-info['lost_frame']
+                if gap>self.max_gap_frames: continue
+                t=info['track']
+                if len(t.trajectory)>=2:
+                    try:
+                        p1=np.array(t.trajectory[-2]); p2=np.array(t.trajectory[-1])
+                        v=p2-p1; interp=p2+v*gap
+                        interp_bbox=[_safe_float(interp[0]),_safe_float(interp[1]),
+                                     max(5.0,min(500.0,_safe_float(interp[2]))),
+                                     max(5.0,min(500.0,_safe_float(interp[3])))]
+                        res.append({'bbox':interp_bbox,'id':int(tid),
+                                   'confidence':_safe_float(t.confidence)*0.7,'class':int(t.cls),
+                                   'class_name':'object','hits':int(t.hits),'age':int(t.age),'interpolated':True})
+                    except: pass
+        return res
 
     def reset(self):
-        self.tracks.clear()
-        self.frame_count = 0
-        KalmanBoxTracker.count = 0
+        self.tracks.clear(); self.lost_tracks.clear(); self.frame_count=0; KalmanTracker.count=0

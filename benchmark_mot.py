@@ -1,9 +1,9 @@
-﻿# E:/UAVagent1.1/benchmark_mot.py
+﻿# E:/UAVagent/benchmark_mot.py
 """MOT 精度基准测试 - 合成场景 + 精确 Ground Truth
 定量证明：多模型融合 vs 单模型在 MOTA/IDF1/HOTA 上的提升
 """
 import sys, os, cv2, numpy as np, json, time, random
-sys.path.insert(0, "E:/UAVagent1.1")
+sys.path.insert(0, "E:/UAVagent")
 from config.settings import config
 from core.vision_system import VisionSystem
 

@@ -1,7 +1,7 @@
-﻿# E:/UAVagent1.1/test_evolution.py
+﻿# E:/UAVagent/test_evolution.py
 """自进化闭环验证 - 反思→补丁→沙盒→部署"""
 import sys, os, json, time, asyncio
-sys.path.insert(0, "E:/UAVagent1.1")
+sys.path.insert(0, "E:/UAVagent")
 from config.settings import config
 from core.data_logger import DataLogger
 from agents.reflection_agent import ReflectionAgent

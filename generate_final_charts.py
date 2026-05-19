@@ -1,4 +1,4 @@
-﻿# E:/UAVagent1.1/generate_final_charts.py
+﻿# E:/UAVagent/generate_final_charts.py
 """生成 MOT 对比图表 + 综合报告"""
 import json, glob, os, numpy as np, matplotlib
 matplotlib.use('Agg')
@@ -8,7 +8,7 @@ plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'DejaVu Sans']
 plt.rcParams['axes.unicode_minus'] = False
 
 # 加载最新结果
-base = "E:/UAVagent1.1/output"
+base = "E:/UAVagent/output"
 sessions = glob.glob(os.path.join(base, "session_*"))
 latest = max(sessions, key=os.path.getmtime) if sessions else None
 

@@ -8,7 +8,7 @@ build/
 venv/
 .venv/
 
-# 模型文件（过大，需单独下载）
+# 模型文件（过大）
 models/*.pt
 models/*.onnx
 models/*.engine
@@ -32,6 +32,6 @@ logs/
 Thumbs.db
 desktop.ini
 
-# 备份文件
+# 备份
 *.backup_auto
 *.bak

@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-05-18 12:46:54",
+  "num_frames": 15,
+  "total_gt": 98,
+  "single_model": {
+    "mota": 0.5,
+    "idf1": 0.6993865030674846
+  },
+  "note": "\u5408\u6210\u573a\u666f\u4ec5\u8bc4\u4f30\u5355\u6a21\u578b\uff1b\u878d\u5408\u4f18\u52bf\u89c1 real_mot_benchmark"
+}

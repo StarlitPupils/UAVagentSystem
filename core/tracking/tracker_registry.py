@@ -1,5 +1,8 @@
-﻿# core/tracking/tracker_registry.py
-from .iou_tracker import EnhancedTracker
+﻿# core/tracking/tracker_registry.py (v1.2.8)
+from .iou_tracker import EnhancedTracker, KalmanTracker
+
+# 向后兼容别名
+ExtendedKalmanTracker = KalmanTracker
 
 class BaseTracker:
     def __init__(self, **kwargs):
@@ -14,9 +17,8 @@ class ByteTrackWrapper(BaseTracker):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.name = "bytetrack"
+        self._next_id = 0
     def update(self, detections, frame=None):
-        if not hasattr(self, '_next_id'):
-            self._next_id = 0
         for d in detections:
             if d.get('id') is None:
                 d['id'] = self._next_id
@@ -36,9 +38,8 @@ class TransformerTrackerWrapper(BaseTracker):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.name = "transformer"
+        self._next_id = 0
     def update(self, detections, frame=None):
-        if not hasattr(self, '_next_id'):
-            self._next_id = 0
         for d in detections:
             if d.get('id') is None:
                 d['id'] = self._next_id
@@ -51,6 +52,7 @@ TRACKER_MAP = {
     "transformer": TransformerTrackerWrapper,
     "deepsort": StrongSORTWrapper,
     "botsort": ByteTrackWrapper,
+    "enhanced": lambda **kw: EnhancedTracker(**kw),
     "iou": lambda **kw: EnhancedTracker(**kw),
 }
 

@@ -1,4 +1,4 @@
-﻿# E:/UAVagent1.1/verify_all.py
+﻿# E:/UAVagent/verify_all.py
 """端到端验证：检测→跟踪→推理→行动→评估"""
 import sys, os, time, json
 sys.path.insert(0, os.path.dirname(__file__))

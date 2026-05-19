@@ -1,7 +1,7 @@
-﻿# E:/UAVagent1.1/test_vision.py
+﻿# E:/UAVagent/test_vision.py
 """视觉检测链路测试"""
 import sys
-sys.path.insert(0, "E:/UAVagent1.1")
+sys.path.insert(0, "E:/UAVagent")
 
 from core.vision_system import VisionSystem
 import numpy as np

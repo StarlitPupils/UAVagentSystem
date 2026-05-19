@@ -1,7 +1,7 @@
-﻿# E:/UAVagent1.1/generate_final_report.py
+﻿# E:/UAVagent/generate_final_report.py
 """生成 UAVagent 1.1 最终精度报告"""
 import sys, os, json, glob, time
-sys.path.insert(0, "E:/UAVagent1.1")
+sys.path.insert(0, "E:/UAVagent")
 from config.settings import config
 
 def safe_load_json(path):

@@ -1,7 +1,7 @@
-﻿# E:/UAVagent1.1/benchmark_accuracy.py
+﻿# E:/UAVagent/benchmark_accuracy.py
 """精度对比基准测试 v2 - 使用真实图片（VisDrone/自动下载/合成自然图）"""
 import sys, os, cv2, numpy as np, json, time
-sys.path.insert(0, "E:/UAVagent1.1")
+sys.path.insert(0, "E:/UAVagent")
 from config.settings import config
 from core.vision_system import VisionSystem
 

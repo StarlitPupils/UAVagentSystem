@@ -1,83 +1,108 @@
-﻿# core/detection/ensemble_detector.py
-"""多模型集成检测器 - Weighted Box Fusion (WBF)"""
-import numpy as np
-import os
-from typing import List
-
+﻿# core/detection/ensemble_detector.py (v1.2.8 stable)
+import numpy as np, os, cv2
 from config.settings import config
 
+def compute_iou_matrix(b1,b2):
+    if len(b1)==0 or len(b2)==0: return np.zeros((len(b1),len(b2)),dtype=np.float32)
+    b1_=np.zeros_like(b1); b2_=np.zeros_like(b2)
+    b1_[:,0]=b1[:,0]-b1[:,2]/2; b1_[:,1]=b1[:,1]-b1[:,3]/2
+    b1_[:,2]=b1[:,0]+b1[:,2]/2; b1_[:,3]=b1[:,1]+b1[:,3]/2
+    b2_[:,0]=b2[:,0]-b2[:,2]/2; b2_[:,1]=b2[:,1]-b2[:,3]/2
+    b2_[:,2]=b2[:,0]+b2[:,2]/2; b2_[:,3]=b2[:,1]+b2[:,3]/2
+    ix1=np.maximum(b1_[:,None,0],b2_[None,:,0]); iy1=np.maximum(b1_[:,None,1],b2_[None,:,1])
+    ix2=np.minimum(b1_[:,None,2],b2_[None,:,2]); iy2=np.minimum(b1_[:,None,3],b2_[None,:,3])
+    inter=np.maximum(0,ix2-ix1)*np.maximum(0,iy2-iy1)
+    a1=(b1_[:,2]-b1_[:,0])*(b1_[:,3]-b1_[:,1]); a2=(b2_[:,2]-b2_[:,0])*(b2_[:,3]-b2_[:,1])
+    return inter/(a1[:,None]+a2[None,:]-inter+1e-8)
 
-def compute_iou_matrix(boxes1: np.ndarray, boxes2: np.ndarray) -> np.ndarray:
-    b1 = np.zeros_like(boxes1)
-    b2 = np.zeros_like(boxes2)
-    b1[:,0]=boxes1[:,0]-boxes1[:,2]/2; b1[:,1]=boxes1[:,1]-boxes1[:,3]/2
-    b1[:,2]=boxes1[:,0]+boxes1[:,2]/2; b1[:,3]=boxes1[:,1]+boxes1[:,3]/2
-    b2[:,0]=boxes2[:,0]-boxes2[:,2]/2; b2[:,1]=boxes2[:,1]-boxes2[:,3]/2
-    b2[:,2]=boxes2[:,0]+boxes2[:,2]/2; b2[:,3]=boxes2[:,1]+boxes2[:,3]/2
-    inter_x1=np.maximum(b1[:,None,0],b2[None,:,0])
-    inter_y1=np.maximum(b1[:,None,1],b2[None,:,1])
-    inter_x2=np.minimum(b1[:,None,2],b2[None,:,2])
-    inter_y2=np.minimum(b1[:,None,3],b2[None,:,3])
-    inter=np.maximum(0,inter_x2-inter_x1)*np.maximum(0,inter_y2-inter_y1)
-    area1=(b1[:,2]-b1[:,0])*(b1[:,3]-b1[:,1])
-    area2=(b2[:,2]-b2[:,0])*(b2[:,3]-b2[:,1])
-    return inter/(area1[:,None]+area2[None,:]-inter+1e-8)
-
-
-def weighted_box_fusion(detections_list, iou_thr=0.55, conf_type="weighted_avg"):
-    all_boxes,all_confs,all_classes,all_weights=[],[],[],[]
-    for mi,dets in enumerate(detections_list):
+def weighted_box_fusion(dets_list, iou_thr=0.50, weights=None):
+    all_boxes,all_confs,all_cls,all_w,all_mid=[],[],[],[],[]
+    if weights is None: weights=config.MODEL_WEIGHTS[:len(dets_list)]
+    for mi,dets in enumerate(dets_list):
         if not dets: continue
-        w=getattr(config,'MODEL_WEIGHTS',[1.0,0.8,0.6])[mi] if getattr(config,'MODEL_WEIGHTS',None) else 1.0
+        w=weights[mi] if mi<len(weights) else 0.5
         for d in dets:
-            all_boxes.append(d.get('bbox',[0,0,0,0]))
-            all_confs.append(d.get('confidence',0.5))
-            all_classes.append(d.get('class',0))
-            all_weights.append(w)
+            all_boxes.append(d['bbox']); all_confs.append(d.get('confidence',0.5))
+            all_cls.append(d.get('class',0)); all_w.append(w); all_mid.append(mi)
     if not all_boxes: return []
     boxes=np.array(all_boxes,dtype=np.float32); confs=np.array(all_confs,dtype=np.float32)
-    classes=np.array(all_classes,dtype=np.int32); weights=np.array(all_weights,dtype=np.float32)
+    classes=np.array(all_cls,dtype=np.int32); wts=np.array(all_w,dtype=np.float32); mids=np.array(all_mid,dtype=np.int32)
     idx=np.argsort(-confs)
-    boxes=boxes[idx]; confs=confs[idx]; classes=classes[idx]; weights=weights[idx]
+    boxes=boxes[idx]; confs=confs[idx]; classes=classes[idx]; wts=wts[idx]; mids=mids[idx]
     fused=[]; used=np.zeros(len(boxes),dtype=bool)
     for i in range(len(boxes)):
         if used[i]: continue
-        cluster=[i]
+        cluster=[i]; models={mids[i]}
         for j in range(i+1,len(boxes)):
             if used[j] or classes[i]!=classes[j]: continue
             if compute_iou_matrix(boxes[i:i+1],boxes[j:j+1])[0,0]>=iou_thr:
-                cluster.append(j)
+                cluster.append(j); models.add(mids[j])
         for c in cluster: used[c]=True
-        cb=boxes[cluster]; cc=confs[cluster]; cw=weights[cluster]
-        if conf_type=="avg": fc=np.mean(cc)
-        elif conf_type=="max": fc=np.max(cc)
-        else: fc=np.average(cc,weights=cw)
+        cb=boxes[cluster]; cc=confs[cluster]; cw=wts[cluster]
+        fc=np.average(cc,weights=cw)
         tw=np.sum(cw*cc); fb=np.sum(cb*(cw*cc)[:,None],axis=0)/(tw+1e-8)
-        fused.append({'bbox':fb.tolist(),'confidence':float(fc),'class':int(classes[i]),'num_models':len(cluster),'id':None})
+        fused.append({'bbox':fb.tolist(),'confidence':float(fc),'class':int(classes[i]),
+                      'num_models':len(models),'id':None})
     fused.sort(key=lambda x:x['confidence'],reverse=True)
     return fused
 
+def soft_consensus_filter(detections):
+    kept=[]
+    stats={'3+':0,'2+':0,'hi_conf':0,'DROP':0}
+    for d in detections:
+        n=d['num_models']; c=d['confidence']
+        if n>=3:
+            kept.append(d); stats['3+']+=1
+        elif n>=2 and c>=0.30:
+            kept.append(d); stats['2+']+=1
+        elif c>=0.50:
+            kept.append(d); stats['hi_conf']+=1
+        else:
+            stats['DROP']+=1
+    if stats['DROP']:
+        print(f"  [FILTER] kept:{len(kept)} drop:{stats['DROP']}/{len(detections)} "
+              f"(3+:{stats['3+']} 2+:{stats['2+']} hi:{stats['hi_conf']})")
+    return kept
 
 class EnsembleDetector:
     def __init__(self, model_paths=None, device=None):
         if device is None: device=config.DETECTION_DEVICE
+        if device=="cuda":
+            import torch
+            if not torch.cuda.is_available(): device="cpu"
         self.device=device; self.models=[]; self.model_names=[]
+        self.fp16=config.DETECTION_FP16 and device=="cuda"
         if model_paths is None:
             base=os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-            model_paths=[os.path.join(base,"models","yolo11x.pt"),
-                         os.path.join(base,"models","yolov8x.pt"),
-                         os.path.join(base,"models","yolo11n.pt")]
-        for path in model_paths:
-            if os.path.exists(path):
-                try:
-                    from ultralytics import YOLO
-                    m=YOLO(path); m.to(device)
-                    self.models.append(m)
-                    self.model_names.append(os.path.basename(path).replace('.pt',''))
-                    print(f"[Ensemble] + {os.path.basename(path)}")
-                except Exception as e:
-                    print(f"[Ensemble] fail {path}: {e}")
-        print(f"[Ensemble] {len(self.models)} models: {self.model_names}")
+            model_dir=os.path.join(base,"models")
+            if os.path.isdir(model_dir):
+                model_paths=[os.path.join(model_dir,f) for f in os.listdir(model_dir) if f.endswith('.pt')]
+                priority=['yolo11x.pt','yolov8x.pt','yolo11n.pt','yolov10n.pt','rtdetr-l.pt']
+                model_paths.sort(key=lambda p: priority.index(os.path.basename(p)) if os.path.basename(p) in priority else 999)
+                model_paths=model_paths[:5]
+        for p in (model_paths or []):
+            if os.path.exists(p): self._load_model(p)
+        if not self.models: self._auto_download()
+        print(f"[Ensemble] {len(self.models)} models, conf={config.DETECTION_CONFIDENCE}, IoU={config.ENSEMBLE_IOU_THR}")
+
+    def _load_model(self, path):
+        try:
+            from ultralytics import YOLO
+            m=YOLO(path)
+            if self.fp16 and self.device=='cuda': m.model.half()
+            m.to(self.device)
+            self.models.append(m); self.model_names.append(os.path.basename(path).replace('.pt',''))
+        except Exception as e: print(f"  skip {os.path.basename(path)}: {e}")
+
+    def _auto_download(self):
+        for name in ['yolo11n.pt','yolo11x.pt']:
+            try:
+                from ultralytics import YOLO
+                m=YOLO(name)
+                if self.fp16: m.model.half()
+                m.to(self.device)
+                self.models.append(m); self.model_names.append(name.replace('.pt',''))
+            except: pass
 
     def detect(self, frame, conf_thr=None):
         if conf_thr is None: conf_thr=config.DETECTION_CONFIDENCE
@@ -85,7 +110,7 @@ class EnsembleDetector:
         all_dets=[]
         for model in self.models:
             try:
-                results=model(frame,conf=conf_thr,device=self.device,verbose=False)
+                results=model(frame,conf=conf_thr,device=self.device,verbose=False,half=self.fp16)
                 dets=[]
                 if results and results[0].boxes is not None:
                     for i in range(len(results[0].boxes)):
@@ -94,11 +119,17 @@ class EnsembleDetector:
                                      "confidence":float(results[0].boxes.conf[i]),
                                      "class":int(results[0].boxes.cls[i]),"id":None})
                 all_dets.append(dets)
-            except Exception as e:
-                print(f"[Ensemble] err: {e}"); all_dets.append([])
-        fused=weighted_box_fusion(all_dets,iou_thr=0.55,conf_type="weighted_avg")
-        print(f"[Ensemble] {[len(d) for d in all_dets]} -> {len(fused)}")
+            except: all_dets.append([])
+        fused=weighted_box_fusion(all_dets, iou_thr=0.50)
+        fused=soft_consensus_filter(fused)
+        MAX_DETS=120
+        if len(fused)>MAX_DETS:
+            fused=sorted(fused,key=lambda x:x['confidence'],reverse=True)[:MAX_DETS]
+            print(f"  [Ensemble] truncated to {MAX_DETS}")
+        det_counts=[len(d) for d in all_dets]
+        print(f"  [Ensemble] {det_counts} -> {len(fused)} dets")
         return fused
 
     def count_models(self): return len(self.models)
     def get_model_names(self): return self.model_names
+    def get_stats(self): return {"num_models":len(self.models),"model_names":self.model_names}

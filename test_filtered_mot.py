@@ -1,7 +1,7 @@
-﻿# E:/UAVagent1.1/test_filtered_mot.py
+﻿# E:/UAVagent/test_filtered_mot.py
 """MOT 基准测试 + LLM 降噪（同时对比三种模式）"""
 import sys, os, cv2, json, numpy as np, time
-sys.path.insert(0, "E:/UAVagent1.1")
+sys.path.insert(0, "E:/UAVagent")
 from config.settings import config
 from core.vision_system import VisionSystem
 from core.llm_filter import LLMDetectionFilter

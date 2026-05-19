@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-05-19 00:54:32",
+  "dataset": "visdrone_uav0000086_00000_v",
+  "num_frames": 100,
+  "total_gt": 3672,
+  "single_detections": 2350,
+  "ensemble_detections": 3158,
+  "single_metrics": {
+    "mota": 0.6399782135076253,
+    "idf1": 0.7804716041182331
+  },
+  "ensemble_metrics": {
+    "mota": 0.8246187363834423,
+    "idf1": 0.9057101024890191
+  },
+  "mota_improvement_ppt": 18.5,
+  "idf1_improvement_ppt": 12.5
+}

@@ -1,7 +1,7 @@
-﻿# E:/UAVagent1.1/test_full_pipeline.py
+﻿# E:/UAVagent/test_full_pipeline.py
 """全链路测试：检测→推理→行动→记忆"""
 import sys
-sys.path.insert(0, "E:/UAVagent1.1")
+sys.path.insert(0, "E:/UAVagent")
 import asyncio
 import numpy as np
 
