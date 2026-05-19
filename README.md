@@ -145,7 +145,7 @@ UAVagent/
 ├── CHANGELOG.md            # 版本更新日志  
 └── README.md  
 
-🎓 学术创新点
+🎓 学术创新点  
 5模型质量门控融合：异常模型自动熔断 + 灰度图智能检测 + 动态权重，在VisDrone上MOTA超越任何单一模型18.5pp  
 EKF+HSV增强跟踪器：8状态扩展卡尔曼 + 统一64维外观特征 + 轨迹插值，ID Switch=0  
 代码级自演化：元智能体可修改其他智能体源码，通过"反思→补丁生成→AST检查→沙盒验证→自动部署"闭环实现结构级自我优化  
@@ -153,7 +153,7 @@ LLM智能路由：Ollama本地模型处理简单任务，DeepSeek云端处理复
 ReAct多轮推理：Thought→Action→Observation循环，决策准确性显著提升  
 全栈评估体系：首次在多智能体系统中同时覆盖跟踪精度、系统效率、LLM交互质量、智能体协作一致性四个维度  
 
-📄 引用
+📄 引用  
 software{UAVagent2025,  
   author = {GouZengrui},  
   title = {UAVagent: A Self-Evolving Multi-Agent System for UAV Detection and Tracking},  
@@ -162,10 +162,10 @@ software{UAVagent2025,
   url = {https://github.com/StarlitPupils/UAVagentSystem}  
 }  
 
-📜 许可证
+📜 许可证  
 MIT License - 详见 LICENSE
 
-🙏 致谢
+🙏 致谢  
 Ultralytics YOLO  
 DeepSeek API  
 VisDrone Dataset  
