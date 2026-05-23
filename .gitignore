@@ -35,3 +35,16 @@ desktop.ini
 # 备份
 *.backup_auto
 *.bak
+
+# Legacy benchmark results (archived in Releases)
+*_benchmark.json
+accuracy_benchmark.json
+mot_benchmark.json
+real_mot_benchmark.json
+real_mot_benchmark_v2.json
+mot_advanced_benchmark.json
+
+# Temporary scripts
+finalize_release.py
+compare_all_metrics.py
+compare_results.py
