@@ -20,8 +20,8 @@ class Config:
     SESSION_ID: str = ""
 
     # ========== 检测模型 (v1.2: 新增YOLOv10/RT-DETR) ==========
-    YOLO_MODEL_PATH: str = str(BASE_DIR / "models" / "yolo11x.pt")
-    YOLO_MODEL_NAME: str = "yolo11x"
+    YOLO_MODEL_PATH: str = str(BASE_DIR / "models" / "yolo11x_visdrone.pt")
+    YOLO_MODEL_NAME: str = "yolo11x_visdrone"
 
     MODEL_REGISTRY: dict = {
         # 原有模型
@@ -29,6 +29,7 @@ class Config:
         "yolov8x": str(BASE_DIR / "models" / "yolov8x.pt"),
         "yolo11n": str(BASE_DIR / "models" / "yolo11n.pt"),
         "yolo11x": str(BASE_DIR / "models" / "yolo11x.pt"),
+        "yolo11x_visdrone": str(BASE_DIR / "models" / "yolo11x_visdrone.pt"),
         # v1.2 新增
         "yolov10n": str(BASE_DIR / "models" / "yolov10n.pt"),
         "yolov10x": str(BASE_DIR / "models" / "yolov10x.pt"),
@@ -41,7 +42,7 @@ class Config:
     DETECTION_FP16: bool = False  # v1.2: FP16推理加速
 
     # ========== 多模型融合权重 (v1.2: 动态权重) ==========
-    MODEL_WEIGHTS: list = [1.0, 0.8, 0.6, 0.5, 0.4]  # 支持5个模型
+    MODEL_WEIGHTS: list = [1.0, 0.9, 0.7, 0.6, 0.5]  # v1.3: 微调模型权重最高  # 支持5个模型
     ENSEMBLE_IOU_THR: float = 0.50
     ENSEMBLE_CONF_TYPE: str = "weighted_avg"
     ENSEMBLE_MIN_MODELS: int = 2  # v1.2: 最少确认模型数
@@ -57,7 +58,7 @@ class Config:
     TRACKER_TYPE: str = "enhanced"
     TRACKER_REGISTRY: dict = {
         "enhanced": {
-            "max_age": 30, "min_hits": 5, "iou_threshold": 0.25,
+            "max_age": 15, "min_hits": 1, "iou_threshold": 0.25,
             "feature_weight": 0.35, "use_ekf": True,  # v1.2: EKF
             "interpolate_gaps": True, "max_gap_frames": 10,  # v1.2: 轨迹插值
         },
@@ -129,9 +130,21 @@ class Config:
     DATASET_ROOT: str = "E:/datasets/VisDrone/VisDrone2019-MOT-val"
 
     # ========== TensorRT/边缘部署 (v1.2 新增) ==========
+    # ========== SAHI 切片推理 (Phase 3) ==========
+    SAHI_ENABLED: bool = True
+    SAHI_SLICE_HEIGHT: int = 480
+    SAHI_SLICE_WIDTH: int = 480
+    SAHI_OVERLAP_RATIO: float = 0.2
+
     TENSORRT_ENABLED: bool = False
     TENSORRT_WORKSPACE: int = 4  # GB
     TENSORRT_FP16: bool = True
+
+    
+    # ========== VLM 视觉推理 (Phase 3) ==========
+    VLM_ENABLED: bool = True
+    VLM_MODEL: str = "qwen-vl-max"  # 或 gpt-4-vision-preview
+    VLM_TIMEOUT: int = 60
 
     # ========== 多机协同 (v1.2 新增) ==========
     MULTI_DRONE_ENABLED: bool = False

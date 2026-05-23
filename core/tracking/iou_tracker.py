@@ -1,4 +1,4 @@
-﻿# core/tracking/iou_tracker.py (v1.2.8 stable - min_hits=1)
+# core/tracking/iou_tracker.py (v1.2.8 stable - min_hits=1)
 import numpy as np, cv2
 from typing import List
 
@@ -24,6 +24,17 @@ class KalmanTracker:
         if frame is not None: self._extract_features(frame,bbox)
 
     def _extract_features(self, frame, bbox):
+        # v1.3: 优先使用 ReID 特征提取器
+        try:
+            from core.tracking.reid_features import reid_extractor
+            feat = reid_extractor.extract(frame, bbox)
+            if feat is not None and len(feat) > 0:
+                self.features = feat.astype(np.float32)
+                return
+        except Exception:
+            pass
+        
+        # 降级: HSV直方图
         try:
             cx=int(_safe_float(bbox[0])); cy=int(_safe_float(bbox[1]))
             w=max(1,int(_safe_float(bbox[2]))); h=max(1,int(_safe_float(bbox[3])))

@@ -3,6 +3,11 @@
 import cv2, numpy as np, os, time
 from config.settings import config
 try:
+    from core.edge.tensorrt_exporter import TensorRTInference
+    TENSORRT_AVAILABLE = True
+except ImportError:
+    TENSORRT_AVAILABLE = False
+try:
     from ultralytics import YOLO
     ULTRALYTICS_AVAILABLE = True
 except ImportError:
@@ -21,10 +26,10 @@ class VisionSystem:
             from core.detection.preprocessing import preprocessor
             self.preprocessor=preprocessor
         except: pass
-        self.model=None; self.ensemble=None; self.tracker=None
+        self.model=None; self.ensemble=None; self.tracker=None; self.tensorrt_model=None
         self.latest_detections=[]; self.detection_count=0; self.total_detections=0
         self.processing_times=[]
-        self._init_model(); self._init_tracker()
+        self._init_model(); self._init_tensorrt(); self._init_tracker()
 
     def _init_model(self):
         if not ULTRALYTICS_AVAILABLE: return
@@ -42,10 +47,31 @@ class VisionSystem:
 
     def _try_download(self):
         try:
-            self.model=YOLO("yolo11n.pt")
-            if self.fp16: self.model.model.half()
-            self.model.to(self.device)
+            # 优先 engine
+            engine_path = config.YOLO_MODEL_PATH.replace('.pt', '.engine')
+            if os.path.exists(engine_path):
+                self.model = YOLO(engine_path)
+            else:
+                self.model = YOLO("yolo11n.pt")
+                if self.fp16: self.model.model.half()
+                self.model.to(self.device)
         except: pass
+
+
+    def _init_tensorrt(self):
+        """尝试加载 TensorRT 引擎加速"""
+        if not TENSORRT_AVAILABLE:
+            return
+        # 优先查找专用 engine 路径
+        engine_path = getattr(config, 'TENSORRT_ENGINE_PATH', '')
+        if not engine_path or not os.path.exists(engine_path):
+            engine_path = config.YOLO_MODEL_PATH.replace('.pt', '.engine')
+        if os.path.exists(engine_path):
+            try:
+                self.tensorrt_model = TensorRTInference(engine_path)
+                print(f"[Vision] TensorRT 引擎已加载: {os.path.basename(engine_path)}")
+            except Exception as e:
+                print(f"[Vision] TensorRT 加载失败: {e}")
 
     def _init_tracker(self):
         from core.tracking.iou_tracker import EnhancedTracker
@@ -83,7 +109,12 @@ class VisionSystem:
     def _detect_single(self, frame):
         if self.model is None: return self._mock_detections(frame)
         try:
-            results=self.model(frame,conf=config.DETECTION_CONFIDENCE,device=self.device,verbose=False,half=self.fp16)
+            # TRT 引擎不能指定 device
+            is_trt = '.engine' in str(getattr(self.model, 'model_name', ''))
+            if is_trt:
+                results = self.model(frame, conf=config.DETECTION_CONFIDENCE, verbose=False)
+            else:
+                results = self.model(frame, conf=config.DETECTION_CONFIDENCE, device=self.device, verbose=False, half=self.fp16)
             dets=[]
             if results and results[0].boxes is not None:
                 for i in range(len(results[0].boxes)):
@@ -96,7 +127,18 @@ class VisionSystem:
 
     def detect_only(self, frame):
         if self.preprocessor: frame=self.preprocessor.enhance(frame,"auto")
-        if self.use_ensemble and self.ensemble: return self.ensemble.detect(frame)
+        # 1. 多模型融合优先（内部已对各模型使用 TensorRT 引擎加速）
+        if self.use_ensemble and self.ensemble:
+            return self.ensemble.detect(frame)
+        # 2. 单模型模式：优先 TensorRT
+        if self.tensorrt_model is not None:
+            try:
+                dets = self.tensorrt_model.infer(frame, conf=config.DETECTION_CONFIDENCE)
+                if dets:
+                    return dets
+            except Exception:
+                pass
+        # 3. 兜底 PyTorch
         return self._detect_single(frame)
 
     def get_stats(self):
