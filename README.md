@@ -75,39 +75,39 @@ python verify_all.py
 
 ---
 
-## 项目结构
+## 项目结构  
 
-UAVagent1.3/
-├── agents/                 # 12 个智能体
-├── core/                   # 核心模块
-│   ├── detection/          # 5 模型 WBF 融合 + SAHI
-│   ├── tracking/           # EKF 跟踪 + ReID
-│   ├── llm/                # LLM/VLM 客户端
-│   ├── memory/             # ChromaDB 向量记忆
-│   └── edge/               # TensorRT 导出推理
-├── training/               # 微调训练脚本
-├── evaluation/             # 评估 + 可视化
-├── config/                 # 全局配置
-├── api/                    # FastAPI 服务
-├── benchmark_v13_full.py   # 1.3 完整基准
-└── UAVagent_1.3_知识迁移文档.md
+UAVagent1.3/  
+├── agents/                 # 12 个智能体  
+├── core/                   # 核心模块  
+│   ├── detection/          # 5 模型 WBF 融合 + SAHI  
+│   ├── tracking/           # EKF 跟踪 + ReID  
+│   ├── llm/                # LLM/VLM 客户端  
+│   ├── memory/             # ChromaDB 向量记忆  
+│   └── edge/               # TensorRT 导出推理  
+├── training/               # 微调训练脚本  
+├── evaluation/             # 评估 + 可视化  
+├── config/                 # 全局配置  
+├── api/                    # FastAPI 服务  
+├── benchmark_v13_full.py   # 1.3 完整基准  
+└── UAVagent_1.3_知识迁移文档.md  
 
-## 引用
+## 引用  
 
-@software{UAVagent2026,
-  author = {GouZengrui},
-  title = {UAVagent: A Self-Evolving Multi-Agent System for UAV Detection and Tracking},
-  year = {2026},
-  version = {1.3},
-  url = {https://github.com/StarlitPupils/UAVagentSystem}
-}
+@software{UAVagent2026,  
+  author = {GouZengrui},  
+  title = {UAVagent: A Self-Evolving Multi-Agent System for UAV Detection and Tracking},  
+  year = {2026},  
+  version = {1.3},  
+  url = {https://github.com/StarlitPupils/UAVagentSystem}  
+}  
 
-## 许可证
+## 许可证  
 
-MIT License
+MIT License  
 
 ---
 
-## 📦 历史版本
+## 📦 历史版本  
 
-旧版本（1.0 / 1.1 / 1.2）的完整说明和源码已归档至 [GitHub Releases](https://github.com/StarlitPupils/UAVagentSystem/releases)。
+旧版本（1.0 / 1.1 / 1.2）的完整说明和源码已归档至 [GitHub Releases](https://github.com/StarlitPupils/UAVagentSystem/releases)。  
