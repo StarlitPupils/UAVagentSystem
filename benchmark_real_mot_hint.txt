@@ -1,7 +1,0 @@
-﻿# E:/UAVagent/benchmark_real_mot.py 关键参数调整（只需修改顶部配置）
-# 将以下两行：
-# config.DETECTION_CONFIDENCE = 0.25
-# MAX_FRAMES = 30
-# 改为：
-# config.DETECTION_CONFIDENCE = 0.15
-# MAX_FRAMES = 50

@@ -105,3 +105,9 @@ UAVagent1.3/
 ## 许可证
 
 MIT License
+
+---
+
+## 📦 历史版本
+
+旧版本（1.0 / 1.1 / 1.2）的完整说明和源码已归档至 [GitHub Releases](https://github.com/StarlitPupils/UAVagentSystem/releases)。
