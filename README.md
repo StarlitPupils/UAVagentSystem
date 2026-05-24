@@ -80,10 +80,10 @@ UAVagentSystem/
 ## 引用  
 Bibtex	
 @software{UAVagent2026,  
-  author = {GouZengrui},	
-  title = {UAVagent: A Self-Evolving Multi-Agent System for UAV Detection and Tracking},	
-  year = {2026},	
-  version = {1.4},	
+  author = {GouZengrui},  
+  title = {UAVagent: A Self-Evolving Multi-Agent System for UAV Detection and Tracking},  
+  year = {2026},  
+  version = {1.4},  
   url = {https://github.com/StarlitPupils/UAVagentSystem}  
 }  
 
