@@ -1,10 +1,8 @@
-﻿# ========== UAVagent 1.2 依赖 (v1.2升级) ==========
+# ========== UAVagent 1.4 依赖 ==========
 # 深度学习
 torch>=2.0.0
 torchvision>=0.15.0
 ultralytics>=8.3.0
-# v1.2: torchreid (ReID特征)
-# torchreid>=1.4.0  # 可选，自动降级
 
 # 跟踪
 lap>=0.5.12
@@ -14,7 +12,6 @@ scipy>=1.10.0
 # LLM
 openai>=1.93.0
 python-dotenv>=1.0.0
-# v1.2: Ollama本地模型 (通过REST API调用，无需额外包)
 requests>=2.31.0
 
 # 向量记忆库
@@ -44,14 +41,6 @@ structlog>=24.0.0
 rich>=13.0.0
 typer>=0.12.0
 
-# v1.2: TensorRT边缘部署 (可选)
-# onnx>=1.16.0
-# onnxruntime-gpu>=1.18.0
-
-# 多智能体（保留）
-autogen-agentchat==0.7.5
-autogen-core==0.7.5
-autogen-ext[openai]==0.7.5
-google-generativeai>=0.3.2
-cosysairsim>=1.8.1
-msgpack-rpc-python==0.4.1
+# 1.4 新增
+pymavlink>=2.4.0          # MAVLink飞控通信
+# tensorrt                  # 需手动安装（NVIDIA SDK）

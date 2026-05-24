@@ -1,5 +1,5 @@
-﻿# core/vision_system.py (v1.2.5 - 简洁版)
-"""视觉系统 - ensemble内部已含共识过滤"""
+# core/vision_system.py (UAVagent 1.4 P3.1)
+"""视觉系统 — 支持自适应检测阈值"""
 import cv2, numpy as np, os, time
 from config.settings import config
 try:
@@ -21,15 +21,26 @@ class VisionSystem:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device=device; self.use_ensemble=use_ensemble
         self.fp16=config.DETECTION_FP16 and device=="cuda"
+        
+        # P3.1: 自适应阈值
+        self.adaptive_threshold = getattr(config, 'ADAPTIVE_THRESHOLD', True)
         self.preprocessor=None
         try:
             from core.detection.preprocessing import preprocessor
             self.preprocessor=preprocessor
         except: pass
+        
         self.model=None; self.ensemble=None; self.tracker=None; self.tensorrt_model=None
         self.latest_detections=[]; self.detection_count=0; self.total_detections=0
         self.processing_times=[]
+        
+        # VLM
+        self.vlm_client = None
+        self.vlm_enabled = getattr(config, 'VLM_ENABLED', False)
+        
         self._init_model(); self._init_tensorrt(); self._init_tracker()
+        if self.vlm_enabled:
+            self._init_vlm()
 
     def _init_model(self):
         if not ULTRALYTICS_AVAILABLE: return
@@ -47,7 +58,6 @@ class VisionSystem:
 
     def _try_download(self):
         try:
-            # 优先 engine
             engine_path = config.YOLO_MODEL_PATH.replace('.pt', '.engine')
             if os.path.exists(engine_path):
                 self.model = YOLO(engine_path)
@@ -57,12 +67,8 @@ class VisionSystem:
                 self.model.to(self.device)
         except: pass
 
-
     def _init_tensorrt(self):
-        """尝试加载 TensorRT 引擎加速"""
-        if not TENSORRT_AVAILABLE:
-            return
-        # 优先查找专用 engine 路径
+        if not TENSORRT_AVAILABLE: return
         engine_path = getattr(config, 'TENSORRT_ENGINE_PATH', '')
         if not engine_path or not os.path.exists(engine_path):
             engine_path = config.YOLO_MODEL_PATH.replace('.pt', '.engine')
@@ -84,16 +90,67 @@ class VisionSystem:
             interpolate_gaps=cfg.get('interpolate_gaps',True),
             max_gap_frames=cfg.get('max_gap_frames',10))
 
+    def _init_vlm(self):
+        try:
+            from core.llm.vlm_client import VLMClient
+            self.vlm_client = VLMClient()
+            self.vlm_enabled = self.vlm_client.enabled
+            if self.vlm_enabled:
+                print(f"[Vision] VLM 已启用: {self.vlm_client.provider}/{self.vlm_client.model}")
+        except Exception as e:
+            print(f"[Vision] VLM 初始化失败: {e}")
+            self.vlm_enabled = False
+
+    # ========== P3.1: 自适应阈值核心逻辑 ==========
+    
+    def _get_adaptive_params(self, frame) -> tuple:
+        """根据场景自动调整检测参数
+        
+        Returns:
+            (conf_threshold, iou_threshold)
+        """
+        if not self.adaptive_threshold or self.preprocessor is None:
+            return config.DETECTION_CONFIDENCE, config.ENSEMBLE_IOU_THR
+        
+        try:
+            analysis = self.preprocessor.analyze_scene(frame)
+            conf = analysis['suggested_conf']
+            iou = analysis['suggested_iou']
+            
+            # 打印自适应信息（每10帧一次）
+            if self.detection_count % 10 == 0:
+                print(f"  [Adaptive] scene={analysis['scene_type']} "
+                      f"brightness={analysis['mean_brightness']:.0f} "
+                      f"density={analysis['estimated_density']:.1f} "
+                      f"-> conf={conf:.2f} iou={iou:.2f}")
+            
+            return conf, iou
+        except Exception:
+            return config.DETECTION_CONFIDENCE, config.ENSEMBLE_IOU_THR
+
     def process_frame(self, frame):
         start=time.time()
-        if self.preprocessor: frame=self.preprocessor.enhance(frame,"auto")
-        # 检测 (ensemble.detect已内置共识过滤)
-        if self.use_ensemble and self.ensemble:
-            raw_dets=self.ensemble.detect(frame)
-        else:
-            raw_dets=self._detect_single(frame)
+        if self.preprocessor and self.adaptive_threshold:
+            frame=self.preprocessor.enhance(frame,"auto")
+        
+        # P3.1: 自适应阈值
+        adaptive_conf, adaptive_iou = self._get_adaptive_params(frame)
+        saved_conf = config.DETECTION_CONFIDENCE
+        saved_iou = config.ENSEMBLE_IOU_THR
+        config.DETECTION_CONFIDENCE = adaptive_conf
+        config.ENSEMBLE_IOU_THR = adaptive_iou
+        
+        try:
+            if self.use_ensemble and self.ensemble:
+                raw_dets=self.ensemble.detect(frame)
+            else:
+                raw_dets=self._detect_single(frame)
+        finally:
+            config.DETECTION_CONFIDENCE = saved_conf
+            config.ENSEMBLE_IOU_THR = saved_iou
+        
         self.detection_count+=1; self.total_detections+=len(raw_dets)
-        # 跟踪
+        
         if self.tracker:
             try:
                 tracked=self.tracker.update(raw_dets,frame)
@@ -106,10 +163,33 @@ class VisionSystem:
         for i,d in enumerate(raw_dets): d["id"]=i
         self.latest_detections=raw_dets; return raw_dets
 
+    def detect_only(self, frame):
+        if self.preprocessor and self.adaptive_threshold:
+            frame=self.preprocessor.enhance(frame,"auto")
+        
+        # P3.1: 自适应阈值
+        adaptive_conf, adaptive_iou = self._get_adaptive_params(frame)
+        saved_conf = config.DETECTION_CONFIDENCE
+        saved_iou = config.ENSEMBLE_IOU_THR
+        config.DETECTION_CONFIDENCE = adaptive_conf
+        config.ENSEMBLE_IOU_THR = adaptive_iou
+        
+        try:
+            if self.use_ensemble and self.ensemble:
+                return self.ensemble.detect(frame)
+            if self.tensorrt_model is not None:
+                try:
+                    dets = self.tensorrt_model.infer(frame, conf=adaptive_conf)
+                    if dets: return dets
+                except Exception: pass
+            return self._detect_single(frame)
+        finally:
+            config.DETECTION_CONFIDENCE = saved_conf
+            config.ENSEMBLE_IOU_THR = saved_iou
+
     def _detect_single(self, frame):
         if self.model is None: return self._mock_detections(frame)
         try:
-            # TRT 引擎不能指定 device
             is_trt = '.engine' in str(getattr(self.model, 'model_name', ''))
             if is_trt:
                 results = self.model(frame, conf=config.DETECTION_CONFIDENCE, verbose=False)
@@ -124,22 +204,6 @@ class VisionSystem:
                                 "class":int(results[0].boxes.cls[i]),"id":None,"num_models":1})
             return dets
         except: return self._mock_detections(frame)
-
-    def detect_only(self, frame):
-        if self.preprocessor: frame=self.preprocessor.enhance(frame,"auto")
-        # 1. 多模型融合优先（内部已对各模型使用 TensorRT 引擎加速）
-        if self.use_ensemble and self.ensemble:
-            return self.ensemble.detect(frame)
-        # 2. 单模型模式：优先 TensorRT
-        if self.tensorrt_model is not None:
-            try:
-                dets = self.tensorrt_model.infer(frame, conf=config.DETECTION_CONFIDENCE)
-                if dets:
-                    return dets
-            except Exception:
-                pass
-        # 3. 兜底 PyTorch
-        return self._detect_single(frame)
 
     def get_stats(self):
         avg=np.mean(self.processing_times) if self.processing_times else 0
@@ -173,3 +237,16 @@ class VisionSystem:
             cv2.rectangle(frame,(x1,y1),(x2,y2),color,2)
             cv2.putText(frame,f"ID:{tid} {conf:.2f}",(x1,y1-5),cv2.FONT_HERSHEY_SIMPLEX,0.4,color,1)
         return frame
+    
+    # VLM 方法
+    def analyze_with_vlm(self, frame, detections=None, mode="scene"):
+        if not self.vlm_enabled: self._init_vlm()
+        if not self.vlm_enabled or self.vlm_client is None:
+            return {"fallback": True, "reason": "VLM 未启用"}
+        if detections is None: detections = self.latest_detections
+        if mode == "scene":
+            return self.vlm_client.analyze_scene(frame, detections=detections)
+        elif mode == "anomaly":
+            anomalies = self.vlm_client.detect_anomalies(frame, detections or [])
+            return {"fallback": False, "anomalies": anomalies, "count": len(anomalies)}
+        return {"fallback": True, "reason": f"未知模式: {mode}"}

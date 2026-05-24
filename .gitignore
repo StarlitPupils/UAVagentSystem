@@ -1,50 +1,17 @@
-﻿# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.egg-info/
-dist/
-build/
-venv/
-.venv/
-
-# 模型文件（过大）
-models/*.pt
-models/*.onnx
-models/*.engine
-
-# 运行时输出
-output/
-logs/
-*.log
-
-# 环境配置（含密钥）
+﻿# 环境配置
 .env
+*.log
+*.pyc
+__pycache__/
+
+# 输出目录
+output/
+models/*.pt
+!models/.gitkeep
 
 # IDE
 .vscode/
 .idea/
-*.swp
-*.swo
-
-# 系统文件
-.DS_Store
-Thumbs.db
-desktop.ini
 
 # 备份
-*.backup_auto
-*.bak
-
-# Legacy benchmark results (archived in Releases)
-*_benchmark.json
-accuracy_benchmark.json
-mot_benchmark.json
-real_mot_benchmark.json
-real_mot_benchmark_v2.json
-mot_advanced_benchmark.json
-
-# Temporary scripts
-finalize_release.py
-compare_all_metrics.py
-compare_results.py
+*.backup*

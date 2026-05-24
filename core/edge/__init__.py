@@ -1,5 +1,16 @@
-# core/edge/__init__.py (v1.3)
-from .exporter import ModelExporter
-from .tensorrt_exporter import TensorRTExporter, TensorRTInference, benchmark_tensorrt
+# core/edge/__init__.py
+from .tensorrt_exporter import (
+    TensorRTExporter,
+    TensorRTInference,
+    benchmark_all_precisions,
+)
 
-__all__ = ["ModelExporter", "TensorRTExporter", "TensorRTInference", "benchmark_tensorrt"]
+# 向后兼容别名
+benchmark_tensorrt = benchmark_all_precisions
+
+__all__ = [
+    "TensorRTExporter",
+    "TensorRTInference",
+    "benchmark_all_precisions",
+    "benchmark_tensorrt",
+]
