@@ -34,30 +34,30 @@
 
 ## 快速开始
 ### 环境准备  
-git clone https://github.com/StarlitPupils/UAVagentSystem.git
-cd UAVagentSystem
-python -m venv venv
-venv\Scripts\activate          # Windows
-source venv/bin/activate       # Linux/Mac
-pip install -r requirements.txt
+git clone https://github.com/StarlitPupils/UAVagentSystem.git  
+cd UAVagentSystem  
+python -m venv venv  
+venv\Scripts\activate          # Windows  
+source venv/bin/activate       # Linux/Mac  
+pip install -r requirements.txt  
 
 下载模型  
-python download_models.py
-配置 API 密钥
-复制 .env.example 为 .env，填入：
-DEEPSEEK_API_KEY — DeepSeek API Key (LLM推理)
-ZHIPU_API_KEY — 智谱 API Key (免费VLM，https://bigmodel.cn)
+python download_models.py  
+配置 API 密钥  
+复制 .env.example 为 .env，填入：  
+DEEPSEEK_API_KEY — DeepSeek API Key (LLM推理)  
+ZHIPU_API_KEY — 智谱 API Key (免费VLM，https://bigmodel.cn)  
 
 运行  
-python main.py                   # 交互式终端
-python benchmark_v14_clean.py    # 100帧完整基准
-python verify_all.py             # 端到端验证
+python main.py                   # 交互式终端  
+python benchmark_v14_clean.py    # 100帧完整基准  
+python verify_all.py             # 端到端验证  
 
 基准测试  
-python benchmark_v14_clean.py    # 1.4 MOTA基准 (100帧, ~6分钟)
-python benchmark_v13_full.py     # 1.3 兼容基准
-python bench_tensorrt_speed.py   # TensorRT 速度测试
-python run_qualitative_analysis.py  # 定性分析效果图
+python benchmark_v14_clean.py    # 1.4 MOTA基准 (100帧, ~6分钟)  
+python benchmark_v13_full.py     # 1.3 兼容基准  
+python bench_tensorrt_speed.py   # TensorRT 速度测试  
+python run_qualitative_analysis.py  # 定性分析效果图  
 
 项目结构  
 UAVagentSystem/  
@@ -67,8 +67,8 @@ UAVagentSystem/
 │   ├── tracking/           # EKF 跟踪 + ReID (torchvision 2048维)  
 │   ├── llm/                # LLM/VLM 客户端 (DeepSeek + 智谱免费)  
 │   ├── memory/             # ChromaDB 向量记忆库  
-│   ├── edge/               # TensorRT FP16/INT8 导出推理	
-│   └── mavlink_connector   # MAVLink 飞控连接器 (1.4新增)	
+│   ├── edge/               # TensorRT FP16/INT8 导出推理  
+│   └── mavlink_connector   # MAVLink 飞控连接器 (1.4新增)  
 ├── training/               # 微调训练脚本 (v14优化版)	
 ├── evaluation/             # 评估 + 定性分析可视化  
 ├── tests/                  # 单元测试 + 集成测试	
