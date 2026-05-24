@@ -5,6 +5,7 @@
 [![TensorRT](https://img.shields.io/badge/TensorRT-10.16-green)](https://developer.nvidia.com/tensorrt)
 [![DeepSeek](https://img.shields.io/badge/LLM-DeepSeek--Reasoner-536DFE)](https://deepseek.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **UAVagent 1.4** 在 1.3 基础上引入 **v14 微调模型 (mAP +72%)**、**SAHI 大图验证**、
 **智谱 GLM-4V-Flash 免费 VLM**、**MAVLink 飞控对接**、**TensorRT INT8 量化框架**，
 实现 **VisDrone MOTA 0.858**（+2.0pp vs 1.3），FP 降至 423。
