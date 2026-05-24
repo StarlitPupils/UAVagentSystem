@@ -59,7 +59,7 @@ python benchmark_v13_full.py     # 1.3 兼容基准
 python bench_tensorrt_speed.py   # TensorRT 速度测试  
 python run_qualitative_analysis.py  # 定性分析效果图  
 
-项目结构  
+## 项目结构  
 UAVagentSystem/  
 ├── agents/                 # 12 个智能体 (感知/推理/行动/学习/反思)  
 ├── core/                   # 核心模块  
@@ -77,7 +77,7 @@ UAVagentSystem/
 ├── models/                 # 模型文件 (运行 download_models.py 获取)	
 └── benchmark_v14_clean.py  # 1.4 完整基准测试  
 
-引用  
+## 引用  
 Bibtex	
 @software{UAVagent2026,  
   author = {GouZengrui},	
@@ -87,5 +87,5 @@ Bibtex
   url = {https://github.com/StarlitPupils/UAVagentSystem}  
 }  
 
-许可证	  
+## 许可证	  
 MIT License
